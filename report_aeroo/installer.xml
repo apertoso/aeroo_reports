@@ -20,7 +20,8 @@
                         <button special="cancel" string="Close" class="oe_link"/>
                     </footer>
                 </footer>
-                <separator string="title" position="replace">
+                <xpath expr="//separator" positing="after">
+<!--                 <separator string="title" position="replace"> -->
                     <p class="oe_grey">
                         Aeroo Reports for OpenERP is a comprehensive reporting engine based on Aeroo Library.
                     </p>
@@ -32,7 +33,8 @@
                           <field name="link" widget="url"/>
                         </group>
                     </group>
-                </separator>
+<!--                 </separator> -->
+					</xpath>
           </data>
       </field>
     </record>
@@ -67,13 +69,14 @@
                 </form>
                 <footer position="replace">
                     <footer>
-                        <button name="check" type="object" string="Apply and Test" class="oe_highlight" states="init"/>
-                        <button name="action_next" type="object" string="Finish" class="oe_highlight" states="done"/>
-                        <label string="or" attrs="{'invisible': [('state','=',False)]}" class="oe_inline"/>
+                        <button name="check" type="object" string="Apply and Test" class="oe_highlight"/>
+                        <button name="action_next" type="object" string="Finish" class="oe_highlight"/>
+<!--                         <label string="or" attrs="{'invisible': [('state','=',False)]}" class="oe_inline"/> -->
                         <button special="cancel" string="Close" class="oe_link"/>
                     </footer>
                 </footer>
-                <separator string="title" position="replace">
+<!--                 <separator string="title" position="replace"> -->
+                <xpath expr="//separator" positing="after">
                     <p class="oe_grey">
                         Configure Aeroo Reports connection to DOCS service and test document conversion.
                     </p>
@@ -108,7 +111,8 @@
                       <field name="state" invisible="1"/>
                     </group>
                   </group>
-                </separator>
+<!--                 </separator> -->
+                </xpath>
           </data>
       </field>
     </record>
