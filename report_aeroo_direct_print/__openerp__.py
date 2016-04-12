@@ -74,6 +74,10 @@ For more reference visit - https://pypi.python.org/pypi/pycups
                    "report_aeroo_direct_print_view.xml",
                    "security/security_rules.xml",
                    "security/ir.model.access.csv"],
+    'external_dependencies': {
+        'python': ['cups',],
+        'bin': ['/usr/sbin/cupsctl',],
+    },
     "license" : "GPL-3 or any later version",
     'installable': True,
     'application': True,
