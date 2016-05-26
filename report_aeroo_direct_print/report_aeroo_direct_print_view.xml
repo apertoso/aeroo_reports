@@ -101,7 +101,7 @@
     		<field name="inherit_id" ref="base.view_users_form"/>
             <field name="arch" type="xml">
                 <data>
-                    <xpath expr="//sheet/notebook/page[@string='Preferences']/group[1]" position="after">
+                    <xpath expr="//sheet/notebook/page[2]/group[1]" position="after">
                         <group>
                             <field name="context_def_purpose_printer" widget="selection" domain="[('code','not in',('user-def-gen-purpose-printer','user-def-label-printer'))]"/>
                             <field name="context_def_label_printer" widget="selection" domain="[('code','not in',('user-def-gen-purpose-printer','user-def-label-printer'))]"/>
