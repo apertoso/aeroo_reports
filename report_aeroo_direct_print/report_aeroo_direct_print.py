@@ -30,6 +30,8 @@
 ##############################################################################
 
 from openerp import api, models, fields, _
+from openerp.exceptions import ValidationError
+
 
 from openerp.report import interface
 import cups
@@ -55,7 +57,7 @@ class report_print_actions(models.TransientModel):
             conn = cups.Connection()
             return conn.printFile(printer, temp_file.name, 'Aeroo Print', {'copies': report_xml.copies > 0 and str(report_xml.copies) or '1'})
         else:
-            raise osv.except_osv(_('Warning!'), _('Unsupported report format "%s". Is not possible direct print to printer.') % res[1])
+            raise ValidationError(_('Unsupported report format "%s". Is not possible direct print to printer.') % res[1])
         return False
     
     @api.multi
@@ -158,7 +160,7 @@ class aeroo_printers(models.Model):
         for r in self.browse(cr, uid, ids, context=context):
             data = printers.get(r.code)
             if not data:
-                raise osv.except_osv(_('Error!'), _('Printer "%s" not found!') % r.code)
+                raise ValidationError(_('Printer "%s" not found!') % r.code)
             note = '\n'.join(map(lambda key: "%s: %s" % (key, data[key]), data))
             r.write({'note':note}, context=context)
         return True
@@ -223,22 +225,22 @@ class report_xml(models.Model):
         return res_id
 
     @api.one
-    def write(recs, vals):
-        if vals.get('report_type', recs.report_type) == 'aeroo':
+    def write(self, vals):
+        if vals.get('report_type', self.report_type) == 'aeroo':
             if ('report_wizard' in vals and not vals['report_wizard'] \
-                    or 'report_wizard' not in vals and not recs.report_wizard) \
+                    or 'report_wizard' not in vals and not self.report_wizard) \
                     and ('printer_id' in vals and vals['printer_id'] \
-                    or 'printer_id' not in vals and recs.printer_id):
-                res = super(report_xml, recs).write(vals)
-                recs._set_report_server_action()
+                    or 'printer_id' not in vals and self.printer_id):
+                res = super(report_xml, self).write(vals)
+                self._set_report_server_action()
             elif 'printer_id' in vals and not vals.get('printer_id') \
                     or vals.get('report_wizard'):
-                recs._unset_report_server_action()
-                res = super(report_xml, recs).write(vals)
+                self._unset_report_server_action()
+                res = super(report_xml, self).write(vals)
             else:
-                res = super(report_xml, recs).write(vals)
+                res = super(report_xml, self).write(vals)
         else:
-            res = super(report_xml, recs).write(vals)
+            res = super(report_xml, self).write(vals)
         return res
 
     def _set_report_server_action(self, cr, uid, ids, context={}):
