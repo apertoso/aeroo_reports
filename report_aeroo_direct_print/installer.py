@@ -93,12 +93,12 @@ class aeroo_printer_installer(osv.osv_memory):
             del p_temp['group_ids']
             del p_temp['active']
             p_temp['state'] = 'connected'
-            data['printer_ids'].append(p_temp)
+            data['printer_ids'].append((0, 0, p_temp))
 
         for new_p in new_printers:
             note = '\n'.join(map(lambda key: "%s: %s" % (key, printers[new_p][key]), printers[new_p]))
             p_temp = {'name':printers[new_p]['printer-info'],'code':new_p,'state':'new','note':note}
-            data['printer_ids'].append(p_temp)
+            data['printer_ids'].append((0, 0, p_temp))
 
         data.update(data)
         return data
