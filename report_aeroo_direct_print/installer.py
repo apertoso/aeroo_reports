@@ -80,7 +80,7 @@ class aeroo_printer_installer(osv.osv_memory):
     def default_get(self, cr, uid, fields, context=None):
         printers_obj = self.pool.get('aeroo.printers')
         data = super(aeroo_printer_installer, self).default_get(cr, uid, fields, context=context)
-        conn = cups.Connection()
+        conn = printers_obj.get_cups_conn(cr, uid, context=context)
         printers = conn.getPrinters()
         installed_ids = printers_obj.search(cr, 1, ['|',('active','=',False),('active','=',True)], context=context)
         printers_installed = printers_obj.read(cr, uid, installed_ids, context=context)

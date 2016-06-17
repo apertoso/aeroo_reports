@@ -47,6 +47,7 @@ class report_print_actions(models.TransientModel):
 
     def report_to_printer(self, cr, uid, ids, report_id, printer, context={}):
         context['active_ids'] = ids
+        printers_obj = self.pool.get('aeroo.printers')
         report_xml = self.pool.get('ir.actions.report.xml').browse(cr, uid, report_id, context=context)
         data = {'model':  report_xml.model, 'id': context['active_ids'][0], 'report_type': 'aeroo'}
         report = self.pool['ir.actions.report.xml']._lookup_report(cr, report_xml.report_name)
@@ -54,36 +55,36 @@ class report_print_actions(models.TransientModel):
         if res[1] in SUPPORTED_PRINT_FORMAT:
             with NamedTemporaryFile(suffix='', prefix='aeroo-print-', delete=False) as temp_file:
                 temp_file.write(res[0])
-            conn = cups.Connection()
+            conn = printers_obj.get_cups_conn(cr, uid, context=context)
             return conn.printFile(printer, temp_file.name, 'Aeroo Print', {'copies': report_xml.copies > 0 and str(report_xml.copies) or '1'})
         else:
             raise ValidationError(_('Unsupported report format "%s". Is not possible direct print to printer.') % res[1])
         return False
     
     @api.multi
-    def to_print(recs):
-        rep_mod = recs.env['ir.actions.report.xml']
-        report_xml = rep_mod.browse(recs.env.context['report_action_id'])[0]
-        obj_print_ids = recs.get_strids()
-        if recs.printer:
+    def to_print(self):
+        rep_mod = self.env['ir.actions.report.xml']
+        report_xml = rep_mod.browse(self.env.context['report_action_id'])[0]
+        obj_print_ids = self.get_strids()
+        if self.printer:
             data = {'model':  report_xml.model,
                     'id': obj_print_ids[0],
                     'report_type': 'aeroo'}
             report = rep_mod._lookup_report(report_xml.report_name)
-            res = report.create(recs.env.cr, recs.env.uid, obj_print_ids, data, 
-                context=dict(recs.env.context))
+            res = report.create(self.env.cr, self.env.uid, obj_print_ids, data,
+                context=dict(self.env.context))
             if res[1] in SUPPORTED_PRINT_FORMAT:
                 with NamedTemporaryFile(suffix='', 
                     prefix='aeroo-print-', delete=False) as temp_file:
                     temp_file.write(res[0])
-                conn = cups.Connection()
-                conn.printFile(recs.printer, temp_file.name,
+                conn = self.env['aeroo.printers'].get_cups_conn()
+                conn.printFile(self.printer, temp_file.name,
                     '%s (Aeroo Reports Print)' % report_xml.name , 
-                    {'copies': recs.copies > 0 and str(recs.copies) or '1'})
+                    {'copies': self.copies > 0 and str(self.copies) or '1'})
                 return {
                     'type': 'ir.actions.act_window_close'
                 }
-        new_recs = recs.with_context(aeroo_dont_print_to_pinter = True)
+        new_recs = self.with_context(aeroo_dont_print_to_pinter = True)
         res = super(report_print_actions, new_recs).to_print()
         return res
     
@@ -125,13 +126,23 @@ class report_print_actions(models.TransientModel):
 class aeroo_printers(models.Model):
     _name = 'aeroo.printers'
     _description = 'Available printers for Aeroo direct print'
-    
+
+    @api.model
+    def get_cups_conn(self):
+        icp = self.env['ir.config_parameter']
+        cups_host = icp.get_param('aeroo.cups_host') or 'localhost'
+        cups_port = int(icp.get_param('aeroo.cups_port')) or 631
+        cups_conn = cups.Connection(
+            host=cups_host,
+            port=cups_port,
+        )
+        return cups_conn
+
     @api.multi
-    def _get_state(recs):
-        res = {}
-        conn = cups.Connection()
+    def _get_state(self):
+        conn = self.env['aeroo.printers'].get_cups_conn()
         printers = conn.getPrinters()
-        for rec in recs:
+        for rec in self:
             state = printers.get(rec.code, {}).get('printer-state')
             rec.state = state and str(state) or state
     
@@ -140,11 +151,11 @@ class aeroo_printers(models.Model):
     name = fields.Char(string='Description', size=256, required=True)
     code = fields.Char(string='Name', size=64, required=True)
     note = fields.Text(string='Details')
-    group_ids  = fields.Many2many('res.groups', 'aeroo_printer_groups_rel', 'printer_id', 'group_id', 'Groups')
+    group_ids = fields.Many2many('res.groups', 'aeroo_printer_groups_rel', 'printer_id', 'group_id', 'Groups')
     state = fields.Selection(compute='_get_state', selection=[('3', _('Idle')),
                                                             ('4', _('Busy')),
                                                             ('5', _('Stopped'))], method=True, store=False, string='State')
-    active = fields.Boolean('Active')
+    active = fields.Boolean('Active', default=True)
         
     ### ends Fields
 
@@ -154,21 +165,17 @@ class aeroo_printers(models.Model):
         res = super(aeroo_printers, self).search(cr, user, args, offset, limit, order, context, count)
         return res
 
-    def refresh(self, cr, uid, ids, context={}):
-        conn = cups.Connection()
+    @api.multi
+    def refresh(self):
+        conn = self.get_cups_conn()
         printers = conn.getPrinters()
-        for r in self.browse(cr, uid, ids, context=context):
-            data = printers.get(r.code)
+        for printer in self:
+            data = printers.get(printer.code)
             if not data:
-                raise ValidationError(_('Printer "%s" not found!') % r.code)
-            note = '\n'.join(map(lambda key: "%s: %s" % (key, data[key]), data))
-            r.write({'note':note}, context=context)
+                raise ValidationError(_('Printer "%s" not found!') % printer.code)
+            printer.note = '\n'.join(map(lambda key: "%s: %s" % (key, data[key]), data))
         return True
 
-    _defaults = {
-        'active': True,
-        
-    }
 
 class res_users(models.Model):
     _name = 'res.users'
